@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_LOGIN = 'your-sonar-token'
+        NEXUS_USERNAME = 'your-nexus-username'
+        NEXUS_PASSWORD = 'your-nexus-password'
+        TOMCAT_SERVER = 'your-tomcat-server'
+        TOMCAT_USER = 'your-tomcat-user'
+        TOMCAT_PASSWORD = 'your-tomcat-password'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/your-repo.git', branch: 'main'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean install'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                sh 'mvn sonar:sonar -Dsonar.login=$SONAR_LOGIN'
+            }
+        }
+
+        stage('Deploy to Nexus') {
+            steps {
+                sh '''
+                mvn deploy -DaltDeploymentRepository=nexus::default::http://your-nexus-server:8081/repository/maven-releases/ \
+                  -Dnexus.username=$NEXUS_USERNAME \
+                  -Dnexus.password=$NEXUS_PASSWORD
+                '''
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                sh '''
+                curl -u $TOMCAT_USER:$TOMCAT_PASSWORD \
+                --upload-file target/your-app.war \
+                "http://$TOMCAT_SERVER:8080/manager/text/deploy?path=/your-app&update=true"
+                '''
+            }
+        }
+    }
+}
