@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        maven 'Maven 3.6.3' // Specify the Maven tool name configured in Jenkins
+    }
+
     environment {
         SONAR_LOGIN = 'your-sonar-token'
         NEXUS_USERNAME = 'your-nexus-username'
@@ -13,24 +17,28 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git url: 'https://github.com/your-repo.git', branch: 'main'
+                // Checkout the code from the development branch
+                git url: 'https://github.com/your-repo.git', branch: 'development'
             }
         }
 
         stage('Build') {
             steps {
+                // Run Maven build
                 sh 'mvn clean install'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
+                // Run SonarQube analysis
                 sh 'mvn sonar:sonar -Dsonar.login=$SONAR_LOGIN'
             }
         }
 
         stage('Deploy to Nexus') {
             steps {
+                // Deploy artifacts to Nexus
                 sh '''
                 mvn deploy -DaltDeploymentRepository=nexus::default::http://your-nexus-server:8081/repository/maven-releases/ \
                   -Dnexus.username=$NEXUS_USERNAME \
@@ -41,6 +49,7 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
+                // Deploy WAR to Tomcat
                 sh '''
                 curl -u $TOMCAT_USER:$TOMCAT_PASSWORD \
                 --upload-file target/your-app.war \
