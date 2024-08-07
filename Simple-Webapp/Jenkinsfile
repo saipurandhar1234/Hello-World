@@ -5,16 +5,22 @@ pipeline {
         MAVEN_HOME = tool 'Maven 3.6.3' // Use the name specified in the Maven configuration
         SONARQUBE_URL = 'http://3.110.221.139:9000/'
         SONARQUBE_TOKEN = 'sqa_e2e0dae9d7a2c5d12338834474b5932dee3c2805'
-        NEXUS_URL = 'http://13.201.93.14:8081//repository/maven-releases/'
+        NEXUS_URL = 'http://13.201.93.14:8081/repository/maven-releases/' // Ensure no double slashes
         NEXUS_CREDENTIALS_ID = 'my-nexus-credentils' // Use the credentials ID
-        TOMCAT_URL = 'http://3.110.204.118:8080/manager/html'
+        TOMCAT_URL = 'http://3.110.204.118:8080/manager/text' // Use /text for curl deployment
         TOMCAT_CREDENTIALS_ID = 'my-tomcat-credentials' // Use the credentials ID
     }
 
     stages {
+        stage('Check curl Version') {
+            steps {
+                sh 'curl --version'
+            }
+        }
+
         stage('Checkout') {
             steps {
-                git 'https://github.com/your-repo.git'
+                git 'https://github.com/saipurandhar1234/Hello-World.git'
             }
         }
 
@@ -36,6 +42,7 @@ pipeline {
 
         stage('Upload to Nexus') {
             steps {
+                // Using credentials for Nexus
                 withCredentials([usernamePassword(credentialsId: NEXUS_CREDENTIALS_ID, usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
                     sh """
                         curl -v --user $NEXUS_USERNAME:$NEXUS_PASSWORD \
@@ -48,6 +55,7 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
+                // Using credentials for Tomcat
                 withCredentials([usernamePassword(credentialsId: TOMCAT_CREDENTIALS_ID, usernameVariable: 'TOMCAT_USERNAME', passwordVariable: 'TOMCAT_PASSWORD')]) {
                     sh """
                         curl -v --user $TOMCAT_USERNAME:$TOMCAT_PASSWORD \
@@ -66,4 +74,3 @@ pipeline {
         }
     }
 }
-
