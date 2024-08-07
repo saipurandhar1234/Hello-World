@@ -1,61 +1,69 @@
 pipeline {
     agent any
 
-    tools {
-        maven 'Maven 3.6.3' // Specify the Maven tool name configured in Jenkins
-    }
-
     environment {
-        SONAR_LOGIN = 'sqa_e2e0dae9d7a2c5d12338834474b5932dee3c2805'
-        NEXUS_USERNAME = 'admin'
-        NEXUS_PASSWORD = 'admin123'
-        TOMCAT_SERVER = 'http://3.110.204.118:8080/'
-        TOMCAT_USER = 'saipurandhar'
-        TOMCAT_PASSWORD = 'admin123'
+        MAVEN_HOME = tool 'Maven 3.6.3' // Use the name specified in the Maven configuration
+        SONARQUBE_URL = 'http://3.110.221.139:9000/'
+        SONARQUBE_TOKEN = 'sqa_e2e0dae9d7a2c5d12338834474b5932dee3c2805'
+        NEXUS_URL = 'http://13.201.93.14:8081//repository/maven-releases/'
+        NEXUS_CREDENTIALS_ID = 'my-nexus-credentils' // Use the credentials ID
+        TOMCAT_URL = 'http://3.110.204.118:8080/manager/html'
+        TOMCAT_CREDENTIALS_ID = 'my-tomcat-credentials' // Use the credentials ID
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout the code from the development branch
-                git url: 'https://github.com/your-repo.git', branch: 'development'
+                git 'https://github.com/your-repo.git'
             }
         }
 
         stage('Build') {
             steps {
-                // Run Maven build
-                sh 'mvn clean install'
+                sh "${MAVEN_HOME}/bin/mvn clean install"
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                // Run SonarQube analysis
-                sh 'mvn sonar:sonar -Dsonar.login=$SONAR_LOGIN'
+                sh """
+                    ${MAVEN_HOME}/bin/mvn sonar:sonar \
+                    -Dsonar.host.url=${SONARQUBE_URL} \
+                    -Dsonar.login=${SONARQUBE_TOKEN}
+                """
             }
         }
 
-        stage('Deploy to Nexus') {
+        stage('Upload to Nexus') {
             steps {
-                // Deploy artifacts to Nexus
-                sh '''
-                mvn deploy -DaltDeploymentRepository=nexus::default::http://your-nexus-server:8081/repository/maven-releases/ \
-                  -Dnexus.username=$NEXUS_USERNAME \
-                  -Dnexus.password=$NEXUS_PASSWORD
-                '''
+                withCredentials([usernamePassword(credentialsId: NEXUS_CREDENTIALS_ID, usernameVariable: 'NEXUS_USERNAME', passwordVariable: 'NEXUS_PASSWORD')]) {
+                    sh """
+                        curl -v --user $NEXUS_USERNAME:$NEXUS_PASSWORD \
+                        --upload-file target/your-artifact.jar \
+                        ${NEXUS_URL}your/group/id/your-artifact-id/1.0.0/your-artifact-id-1.0.0.jar
+                    """
+                }
             }
         }
 
         stage('Deploy to Tomcat') {
             steps {
-                // Deploy WAR to Tomcat
-                sh '''
-                curl -u $TOMCAT_USER:$TOMCAT_PASSWORD \
-                --upload-file target/your-app.war \
-                "http://$TOMCAT_SERVER:8080/manager/text/deploy?path=/your-app&update=true"
-                '''
+                withCredentials([usernamePassword(credentialsId: TOMCAT_CREDENTIALS_ID, usernameVariable: 'TOMCAT_USERNAME', passwordVariable: 'TOMCAT_PASSWORD')]) {
+                    sh """
+                        curl -v --user $TOMCAT_USERNAME:$TOMCAT_PASSWORD \
+                        --upload-file target/your-artifact.war \
+                        ${TOMCAT_URL}/deploy?path=/yourapp
+                    """
+                }
             }
         }
     }
+
+    post {
+        always {
+            junit 'target/surefire-reports/*.xml'
+            cleanWs()
+        }
+    }
 }
+
