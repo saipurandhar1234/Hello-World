@@ -6,12 +6,12 @@ pipeline {
     }
 
     environment {
-        SONAR_LOGIN = 'your-sonar-token'
-        NEXUS_USERNAME = 'your-nexus-username'
-        NEXUS_PASSWORD = 'your-nexus-password'
-        TOMCAT_SERVER = 'your-tomcat-server'
-        TOMCAT_USER = 'your-tomcat-user'
-        TOMCAT_PASSWORD = 'your-tomcat-password'
+        SONAR_LOGIN = 'sqa_e2e0dae9d7a2c5d12338834474b5932dee3c2805'
+        NEXUS_USERNAME = 'admin'
+        NEXUS_PASSWORD = 'admin123'
+        TOMCAT_SERVER = 'http://3.110.204.118:8080/'
+        TOMCAT_USER = 'saipurandhar'
+        TOMCAT_PASSWORD = 'admin123'
     }
 
     stages {
